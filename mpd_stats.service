@@ -1,0 +1,14 @@
+[Unit]
+Description=MPD stats gathering daemon
+Requires=mpd.service
+After=mpd.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/usr/bin/mpd_stats
+
+[Install]
+WantedBy=default.target
