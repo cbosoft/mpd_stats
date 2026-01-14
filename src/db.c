@@ -350,3 +350,53 @@ int db_add_play(struct db_conn *db, const char *title, const char *artist, const
 
   return _db_add_play(db->inner, song_id);
 }
+
+
+
+// Querying
+
+const char *SQL_RECENT_ARTISTS = "SELECT Artist.Name FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID INNER JOIN Artist ON Album.ArtistID=Artist.ID GROUP BY Artist.Name ORDER BY TIME DESC LIMIT 10;";
+const char *SQL_RECENT_ALBUMS = "SELECT Album.Name FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID GROUP BY Album.Name ORDER BY TIME DESC LIMIT 10;";
+const char *SQL_RECENT_SONGS = "SELECT S.Name FROM Plays INNER JOIN Song s ON s.id=plays.SongID GROUP BY S.Name ORDER BY TIME DESC LIMIT 10;";
+
+const char *SQL_FREQUENT_ARTISTS = "SELECT Artist.Name as ArtistName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID INNER JOIN Artist ON Album.ArtistID=Artist.ID GROUP BY Artist.Name ORDER BY PlayCount Desc LIMIT 10;";
+const char *SQL_FREQUENT_ALBUMS = "SELECT Album.Name as AlbumName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID GROUP BY Album.Name ORDER BY PlayCount Desc LIMIT 10;";
+const char *SQL_FREQUENT_SONGS = "SELECT S.Name as SongName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID GROUP BY S.Name ORDER BY PlayCount Desc LIMIT 100;";
+
+
+int fetch_results(sqlite3 *db, const char *query, char ***results) {
+  sqlite3_stmt *stmt = NULL;
+  if (sqlite3_prepare_v2(db, query, strlen(query), &stmt, NULL)) {
+    const char *errmsg = sqlite3_errmsg(db);
+    fprintf(stderr, "failed to prep stmt \"%s\": %s\n", query, errmsg);
+    return 0;
+  }
+
+  int count = 0;
+  (*results) = malloc(10*sizeof(const char *));
+  for (int state = sqlite3_step(stmt); state == SQLITE_ROW; state=sqlite3_step(stmt)) {
+    const char *s = (const char *)sqlite3_column_text(stmt, 0);
+    int n = strlen(s);
+    (*results)[count] = malloc(sizeof(char)*(n + 1));
+    strncpy((*results)[count], s, n);
+    (*results)[count][n] = 0;
+    count ++;
+  }
+
+  sqlite3_finalize(stmt);
+  return count;
+}
+
+int db_fetch_recent_artists(struct db_conn *db, char ***results) { return fetch_results(db->inner, SQL_RECENT_ARTISTS, results); }
+int db_fetch_recent_albums(struct db_conn *db, char ***results) { return fetch_results(db->inner, SQL_RECENT_ALBUMS, results); }
+int db_fetch_recent_songs(struct db_conn *db, char ***results) { return fetch_results(db->inner, SQL_RECENT_SONGS, results); }
+int db_fetch_frequent_artists(struct db_conn *db, char ***results) { return fetch_results(db->inner, SQL_FREQUENT_ARTISTS, results); }
+int db_fetch_frequent_albums(struct db_conn *db, char ***results) { return fetch_results(db->inner, SQL_FREQUENT_ALBUMS, results); }
+int db_fetch_frequent_songs(struct db_conn *db, char ***results) { return fetch_results(db->inner, SQL_FREQUENT_SONGS, results); }
+
+void db_free_results(char **results, int n_results) {
+  for (int i = 0; i < n_results; i++) {
+    free(results[i]);
+  }
+  free(results);
+}

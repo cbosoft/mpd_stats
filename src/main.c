@@ -1,46 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
-#include <errno.h>
 
 // docs: https://www.musicpd.org/doc/libmpdclient
 #include <mpd/client.h>
 
+#include "msleep.h"
 #include "db.h"
-
-const char *state_unknown = "Unknown";
-const char *state_stopped = "Stopped";
-const char *state_playing = "Playing";
-const char *state_paused  = "Paused";
-
-
-
+#include "playlist.h"
 
 
 struct stat_state {
-  int mpd_state;
   int song_id;
   int new_song;
 };
 
 
-const char *describe_playstate(int state) {
-  switch (state) {
-    default:
-    case MPD_STATE_UNKNOWN:
-      return state_unknown;
-    case MPD_STATE_STOP:
-      return state_stopped;
-    case MPD_STATE_PLAY:
-      return state_playing;
-    case MPD_STATE_PAUSE:
-      return state_paused;
-  }
-}
-
 void stat_state_update(struct stat_state *state, struct mpd_connection *conn) {
     struct mpd_status *status = mpd_run_status(conn);
-    state->mpd_state = mpd_status_get_state(status);
 
     int song_id = mpd_status_get_song_id(status);
     if (song_id < 0) {
@@ -72,32 +48,28 @@ void run_sm(struct stat_state *state, struct mpd_connection *mpd, struct db_conn
     }
 
     mpd_song_free(song);
+
+    generate_playlists(mpd, db);
   }
 }
 
 
-int msleep(long msec) {
-    struct timespec ts;
-    int res;
-
-    if (msec < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    ts.tv_sec = msec / 1000;
-    ts.tv_nsec = (msec % 1000) * 1000000;
-
-    do {
-        res = nanosleep(&ts, &ts);
-    } while (res && errno == EINTR);
-
-    return res;
+int mpd_error(struct mpd_connection *mpd) {
+  fprintf(stderr, "MPD error: %s\n", mpd_connection_get_error_message(mpd));
+  mpd_connection_free(mpd);
+  return 1;
 }
 
 
 int main() {
   struct mpd_connection *mpd = mpd_connection_new(NULL, 0, 0);
+  //if (!mpd_search_db_tags(mpd, MPD_TAG_ARTIST)) return mpd_error(mpd);
+  // if (!mpd_search_add_db_songs_to_playlist(mpd, "foo")) return mpd_error(mpd);
+  // if (!mpd_search_add_tag_constraint(mpd, MPD_OPERATOR_DEFAULT, MPD_TAG_ARTIST, "rammstein")) return mpd_error(mpd);
+  // //if (!mpd_search_add_expression(mpd, "rammstein")) return mpd_error(mpd);
+  // if (!mpd_search_commit(mpd)) return mpd_error(mpd);
+  // mpd_connection_free(mpd);
+  // return 1;
 
   if (mpd == NULL) {
     fprintf(stderr, "Out of memory\n");
@@ -117,15 +89,14 @@ int main() {
     return 3;
   }
 
-  struct stat_state *state = malloc(sizeof(struct stat_state));
+  struct stat_state state = {.song_id = 0, .new_song = 0};
   while (1) {
-    stat_state_update(state, mpd);
-    run_sm(state, mpd, db);
+    stat_state_update(&state, mpd);
+    run_sm(&state, mpd, db);
     msleep(500);
   }
-  
+
   mpd_connection_free(mpd);
   db_free(db);
-  free(state);
   return 0;
 }
