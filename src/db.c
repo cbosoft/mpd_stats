@@ -355,13 +355,13 @@ int db_add_play(struct db_conn *db, const char *title, const char *artist, const
 
 // Querying
 
-const char *SQL_RECENT_ARTISTS = "SELECT Artist.Name FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID INNER JOIN Artist ON Album.ArtistID=Artist.ID GROUP BY Artist.Name ORDER BY TIME DESC LIMIT 10;";
-const char *SQL_RECENT_ALBUMS = "SELECT Album.Name FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID GROUP BY Album.Name ORDER BY TIME DESC LIMIT 10;";
-const char *SQL_RECENT_SONGS = "SELECT S.Name FROM Plays INNER JOIN Song s ON s.id=plays.SongID GROUP BY S.Name ORDER BY TIME DESC LIMIT 10;";
+const char *SQL_RECENT_ARTISTS = "SELECT ArtistName FROM (SELECT Artist.Name AS ArtistName, Max(Time) AS Time FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID INNER JOIN Artist ON Album.ArtistID=Artist.ID GROUP BY Artist.Name) ORDER BY Time DESC LIMIT 10;";
+const char *SQL_RECENT_ALBUMS = "SELECT AlbumName FROM (SELECT Album.Name AS AlbumName, Max(Time) AS Time FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID GROUP BY Album.Name) ORDER BY Time DESC LIMIT 10;";
+const char *SQL_RECENT_SONGS = "SELECT SongName FROM (SELECT S.Name AS SongName, MAX(Time) AS Time FROM Plays INNER JOIN Song s ON s.id=plays.SongID GROUP BY S.Name) ORDER BY Time DESC LIMIT 10;";
 
-const char *SQL_FREQUENT_ARTISTS = "SELECT Artist.Name as ArtistName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID INNER JOIN Artist ON Album.ArtistID=Artist.ID GROUP BY Artist.Name ORDER BY PlayCount Desc LIMIT 10;";
-const char *SQL_FREQUENT_ALBUMS = "SELECT Album.Name as AlbumName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID GROUP BY Album.Name ORDER BY PlayCount Desc LIMIT 10;";
-const char *SQL_FREQUENT_SONGS = "SELECT S.Name as SongName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID GROUP BY S.Name ORDER BY PlayCount Desc LIMIT 100;";
+const char *SQL_FREQUENT_ARTISTS = "SELECT ArtistName FROM (SELECT Artist.Name as ArtistName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID INNER JOIN Artist ON Album.ArtistID=Artist.ID GROUP BY Artist.Name) ORDER BY PlayCount Desc LIMIT 10;";
+const char *SQL_FREQUENT_ALBUMS = "SELECT AlbumName FROM (SELECT Album.Name as AlbumName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID INNER JOIN Album ON s.AlbumID = Album.ID GROUP BY Album.Name) ORDER BY PlayCount Desc LIMIT 10;";
+const char *SQL_FREQUENT_SONGS = "SELECT SongName FROM (SELECT S.Name as SongName, COUNT(*) as PlayCount FROM Plays INNER JOIN Song s ON s.id=plays.SongID GROUP BY S.Name) ORDER BY PlayCount Desc LIMIT 100;";
 
 
 int fetch_results(sqlite3 *db, const char *query, char ***results) {
