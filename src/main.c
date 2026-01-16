@@ -12,6 +12,7 @@
 struct stat_state {
   int song_id;
   int new_song;
+  unsigned pos;
 };
 
 
@@ -19,6 +20,7 @@ void stat_state_update(struct stat_state *state, struct mpd_connection *conn) {
     struct mpd_status *status = mpd_run_status(conn);
 
     int song_id = mpd_status_get_song_id(status);
+    unsigned pos = mpd_status_get_elapsed_ms(status);
     if (song_id < 0) {
       state->new_song = 0;
     }
@@ -26,9 +28,13 @@ void stat_state_update(struct stat_state *state, struct mpd_connection *conn) {
       state->new_song = 1;
       state->song_id = song_id;
     }
+    else if (pos < state-> pos) {
+      state->new_song = 1;
+    }
     else {
       state->new_song = 0;
     }
+    state->pos = pos;
 
     mpd_status_free(status);
 }
