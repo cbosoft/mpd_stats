@@ -16,7 +16,7 @@ int init_schema(sqlite3 *db) {
     "CREATE TABLE IF NOT EXISTS Artist(ID INTEGER PRIMARY KEY, Name TEXT NOT NULL UNIQUE);",
     "CREATE TABLE IF NOT EXISTS Album(ID INTEGER PRIMARY KEY, ArtistID INTEGER NOT NULL REFERENCES Artist(ID), Name TEXT NOT NULL, UNIQUE (ArtistID, Name), CHECK (ArtistID > 0) );",
     "CREATE TABLE IF NOT EXISTS Song(ID INTEGER PRIMARY KEY, AlbumID INTEGER NOT NULL REFERENCES Album(ID), Name TEXT NOT NULL, MPDID INTEGER NOT NULL UNIQUE, UNIQUE (AlbumID, Name), Check(AlbumID > 0));",
-    "CREATE TABLE IF NOT EXISTS Plays(Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, SongID INTEGER REFERENCES Song(ID));",
+    "CREATE TABLE IF NOT EXISTS Plays(Time INTEGER NOT NULL, SongID INTEGER REFERENCES Song(ID));",
     NULL
   };
   char *errmsg = NULL;
@@ -305,7 +305,7 @@ _db_get_song_end:
 
 
 int _db_add_play(sqlite3 *db, int song_id) {
-  const char *sql = "INSERT INTO Plays (SongID) VALUES (?);";
+  const char *sql = "INSERT INTO Plays (Time, SongID) VALUES (unixepoch(), ?);";
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
