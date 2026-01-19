@@ -25,7 +25,7 @@ int init_schema(sqlite3 *db) {
   for (int i = 0; statements[i] != NULL; i++) {
     const char *sql = statements[i];
     if (sqlite3_exec(db, sql, NULL, NULL, (char **)&errmsg)) {
-      fprintf(stderr, "Error running sql \"%s\": %s\n", sql, errmsg);
+      fprintf(stderr, ":: Error running sql \"%s\": %s\n", sql, errmsg);
       rv = -1;
       break;
     }
@@ -38,10 +38,11 @@ int init_schema(sqlite3 *db) {
 struct db_conn *db_init() {
   struct db_conn *conn = malloc(sizeof(struct db_conn));
   conn->inner = NULL;
+  fprintf(stderr, "Initialising database...\n");
 
   const char *HOME = getenv("HOME");
   if (HOME == NULL) {
-    fprintf(stderr, "No HOME var?");
+    fprintf(stderr, ":: No HOME var?");
     goto db_init_err;
   }
 
@@ -49,14 +50,15 @@ struct db_conn *db_init() {
   snprintf(s, 1000, "%s/.mpd_stats.db", HOME);
 
   if (sqlite3_open((const char *)s, &conn->inner)) {
-    fprintf(stderr, "Failed to open sqlite db.\n");
+    fprintf(stderr, ":: Failed to open sqlite db.\n");
     goto db_init_err;
   }
 
   if (init_schema(conn->inner)) {
-    fprintf(stderr, "Failed to init sqlite schema.\n");
+    fprintf(stderr, ":: Failed to init sqlite schema.\n");
     goto db_init_err;
   }
+  fprintf(stderr, "Done!\n");
 
   return conn;
 
@@ -83,14 +85,14 @@ int db_add_artist(sqlite3 *db, const char *artist) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep select stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to prep select stmt \"%s\": %s\n", sql, errmsg);
     return -1;
   }
 
   int rv = -1;
   if (sqlite3_bind_text(stmt, 1, artist, strlen(artist), SQLITE_STATIC)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_add_artist_end;
   }
 
@@ -114,14 +116,14 @@ int db_get_artist(sqlite3 *db, const char *artist) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep select stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to prep select stmt \"%s\": %s\n", sql, errmsg);
     return -1;
   }
 
   int rv = -1;
   if (sqlite3_bind_text(stmt, 1, artist, strlen(artist), SQLITE_STATIC)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_get_artist_end;
   }
 
@@ -150,20 +152,20 @@ int db_add_album(sqlite3 *db, const char *album, int artist_id) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep select stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to prep select stmt \"%s\": %s\n", sql, errmsg);
     return -1;
   }
 
   int rv = -1;
   if (sqlite3_bind_text(stmt, 1, album, strlen(album), SQLITE_STATIC)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 1:Album to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 1:Album to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_add_album_end;
   }
 
   if (sqlite3_bind_int(stmt, 2, artist_id)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 2:ArtistID to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 2:ArtistID to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_add_album_end;
   }
 
@@ -187,20 +189,20 @@ int db_get_album(sqlite3 *db, const char *album, int artist_id) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep select stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to prep select stmt \"%s\": %s\n", sql, errmsg);
     return -1;
   }
 
   int rv = -1;
   if (sqlite3_bind_text(stmt, 1, album, strlen(album), SQLITE_STATIC)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_get_album_end;
   }
 
   if (sqlite3_bind_int(stmt, 2, artist_id)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 2:ArtistID to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 2:ArtistID to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_get_album_end;
   }
 
@@ -230,26 +232,26 @@ int db_add_song(sqlite3 *db, const char *title, int album_id, int mpd_song_id) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to prep stmt \"%s\": %s\n", sql, errmsg);
     return -1;
   }
 
   int rv = -1;
   if (sqlite3_bind_text(stmt, 1, title, strlen(title), SQLITE_STATIC)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 1:Name to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_add_song_end;
   }
 
   if (sqlite3_bind_int(stmt, 2, album_id)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 2:AlbumID to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 2:AlbumID to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_add_song_end;
   }
 
   if (sqlite3_bind_int(stmt, 3, mpd_song_id)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 3:MPDID to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 3:MPDID to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_add_song_end;
   }
 
@@ -273,14 +275,14 @@ int db_get_song(sqlite3 *db, const char *title, int album_id, int mpd_song_id) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to prep stmt \"%s\": %s\n", sql, errmsg);
     return -1;
   }
 
   int rv = -1;
   if (sqlite3_bind_int(stmt, 1, mpd_song_id)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 1:MPDID to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 1:MPDID to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_get_song_end;
   }
 
@@ -309,14 +311,14 @@ int _db_add_play(sqlite3 *db, int song_id) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, sql, strlen(sql), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to prep stmt \"%s\": %s\n", sql, errmsg);
     return -1;
   }
 
   int rv = -1;
   if (sqlite3_bind_int(stmt, 1, song_id)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to bind var 1:SongID to stmt \"%s\": %s\n", sql, errmsg);
+    fprintf(stderr, ":: Failed to bind var 1:SongID to stmt \"%s\": %s\n", sql, errmsg);
     goto _db_add_song_end;
   }
 
@@ -368,7 +370,7 @@ int fetch_results(sqlite3 *db, const char *query, char ***results) {
   sqlite3_stmt *stmt = NULL;
   if (sqlite3_prepare_v2(db, query, strlen(query), &stmt, NULL)) {
     const char *errmsg = sqlite3_errmsg(db);
-    fprintf(stderr, "failed to prep stmt \"%s\": %s\n", query, errmsg);
+    fprintf(stderr, ":: Failed to prep stmt \"%s\": %s\n", query, errmsg);
     return 0;
   }
 

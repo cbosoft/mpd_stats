@@ -40,17 +40,17 @@ void uri_node_free(struct uri_node *root) {
 void generate_playlist(struct mpd_connection *mpd, struct db_conn *db, int (*f)(struct db_conn *, char ***), int tag, const char *playlist_name, bool top) {
   char **results = NULL;
   int n_results = f(db, &results);
-  fprintf(stderr, "%s :: %d\n", playlist_name, n_results);
 
   int n_effective_results = n_results;
   if (top) n_effective_results = 1;
+  fprintf(stderr, ":: Generating %s: %d/%d\n", playlist_name, n_effective_results, n_results);
 
   if (!mpd_run_playlist_clear(mpd, playlist_name)) mpd_connection_clear_error(mpd);
 
   struct uri_node *root = NULL, *ptr = NULL;
 
   for (int i = 0; i < n_effective_results; i++) {
-    fprintf(stderr, "%d, %s\n", i, results[i]);
+    fprintf(stderr, ":::: %d, %s\n", i, results[i]);
     // if (!mpd_search_db_songs(mpd, 1)) goto _generate_playlist_error;
     if (!mpd_search_add_db_songs_to_playlist(mpd, playlist_name)) goto _generate_playlist_error;
     if (!mpd_search_add_tag_constraint(mpd, MPD_OPERATOR_DEFAULT, tag, results[i])) goto _generate_playlist_error;
@@ -97,13 +97,14 @@ void generate_playlist(struct mpd_connection *mpd, struct db_conn *db, int (*f)(
   return;
 
 _generate_playlist_error:
-  fprintf(stderr, "error encountered in generate_playlist \"%s\": %s\n", playlist_name, mpd_connection_get_error_message(mpd));
+  fprintf(stderr, ":: Error encountered in generate_playlist \"%s\": %s\n", playlist_name, mpd_connection_get_error_message(mpd));
   mpd_connection_clear_error(mpd);
   uri_node_free(root);
   db_free_results(results, n_results);
 }
 
 void generate_playlists(struct mpd_connection *mpd, struct db_conn *db) {
+  fprintf(stderr, "Generating playlists...\n");
   // generate_playlist(mpd, db, db_fetch_frequent_songs, MPD_TAG_TITLE, "Most Played Songs", 0);
   generate_playlist(mpd, db, db_fetch_frequent_albums, MPD_TAG_ALBUM, "Most Played Albums", 0);
   //generate_playlist(mpd, db, db_fetch_frequent_artists, MPD_TAG_ARTIST, "Most Played Artists", 0);
@@ -113,4 +114,5 @@ void generate_playlists(struct mpd_connection *mpd, struct db_conn *db) {
   generate_playlist(mpd, db, db_fetch_recent_artists, MPD_TAG_ARTIST, "From Recently Played Artists", 0);
   generate_playlist(mpd, db, db_fetch_recent_albums, MPD_TAG_ALBUM, "Last Played Album", 1);
   generate_playlist(mpd, db, db_fetch_recent_artists, MPD_TAG_ARTIST, "From Last Played Artists", 1);
+  fprintf(stderr, "Done!\n");
 }

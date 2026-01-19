@@ -48,9 +48,9 @@ void run_sm(struct stat_state *state, struct mpd_connection *mpd, struct db_conn
     const char *title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
     const char *artist = mpd_song_get_tag(song, MPD_TAG_ARTIST, 0);
     const char *album = mpd_song_get_tag(song, MPD_TAG_ALBUM, 0);
-    fprintf(stderr, "now playing %s by %s from %s\n", title, artist, album);
+    fprintf(stderr, "Now Playing %s by %s from %s\n", title, artist, album);
     if (db_add_play(db, title, artist, album, song_id)) {
-      fprintf(stderr, "failed to add to DB!\n");
+      fprintf(stderr, ":: Failed to add to DB!\n");
     }
 
     mpd_song_free(song);
@@ -60,22 +60,8 @@ void run_sm(struct stat_state *state, struct mpd_connection *mpd, struct db_conn
 }
 
 
-int mpd_error(struct mpd_connection *mpd) {
-  fprintf(stderr, "MPD error: %s\n", mpd_connection_get_error_message(mpd));
-  mpd_connection_free(mpd);
-  return 1;
-}
-
-
 int main() {
   struct mpd_connection *mpd = mpd_connection_new(NULL, 0, 0);
-  //if (!mpd_search_db_tags(mpd, MPD_TAG_ARTIST)) return mpd_error(mpd);
-  // if (!mpd_search_add_db_songs_to_playlist(mpd, "foo")) return mpd_error(mpd);
-  // if (!mpd_search_add_tag_constraint(mpd, MPD_OPERATOR_DEFAULT, MPD_TAG_ARTIST, "rammstein")) return mpd_error(mpd);
-  // //if (!mpd_search_add_expression(mpd, "rammstein")) return mpd_error(mpd);
-  // if (!mpd_search_commit(mpd)) return mpd_error(mpd);
-  // mpd_connection_free(mpd);
-  // return 1;
 
   if (mpd == NULL) {
     fprintf(stderr, "Out of memory\n");
@@ -95,7 +81,7 @@ int main() {
     return 3;
   }
 
-  struct stat_state state = {.song_id = 0, .new_song = 0};
+  struct stat_state state = {.song_id = 0, .new_song = 0, .pos = 0};
   while (1) {
     stat_state_update(&state, mpd);
     run_sm(&state, mpd, db);
